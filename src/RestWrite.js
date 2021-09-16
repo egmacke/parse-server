@@ -11,9 +11,9 @@ var passwordCrypto = require('./password');
 var Parse = require('parse/node');
 var triggers = require('./triggers');
 var ClientSDK = require('./ClientSDK');
-import RestQuery from './RestQuery';
 import _ from 'lodash';
 import logger from './logger';
+import RestQuery from './RestQuery';
 
 // query and data are both provided in REST API format. So data
 // types are encoded by plain old objects.
@@ -38,6 +38,11 @@ function RestWrite(config, auth, className, query, data, originalData, clientSDK
   this.storage = {};
   this.runOptions = {};
   this.context = context || {};
+  
+  if (!!data && data._context && data._context instanceof Object) {
+    this.context = data._context;
+    delete data._context;
+  }
 
   if (action) {
     this.runOptions.action = action;

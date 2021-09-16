@@ -110,9 +110,19 @@ function ParseServerRESTController(applicationId, router) {
     }
 
     return new Promise((resolve, reject) => {
+      let body = data;
+
+      if (options.context !== null && typeof options.context === 'object') {
+        body = {
+          ...data,
+          _context: options.context
+        };
+        delete options.context;
+      }
+
       getAuth(options, config).then(auth => {
         const request = {
-          body: data,
+          body,
           config,
           auth,
           info: {

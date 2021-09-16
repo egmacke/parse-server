@@ -1,15 +1,15 @@
-import corsMiddleware from 'cors';
-import bodyParser from 'body-parser';
-import { graphqlUploadExpress } from 'graphql-upload';
-import { graphqlExpress } from 'apollo-server-express/dist/expressApollo';
 import { renderPlaygroundPage } from '@apollographql/graphql-playground-html';
+import { graphqlExpress } from 'apollo-server-express/dist/expressApollo';
+import bodyParser from 'body-parser';
+import corsMiddleware from 'cors';
 import { execute, subscribe } from 'graphql';
+import { graphqlUploadExpress } from 'graphql-upload';
 import { SubscriptionServer } from 'subscriptions-transport-ws';
+import ParseGraphQLController, { ParseGraphQLConfig } from '../Controllers/ParseGraphQLController';
+import defaultLogger from '../logger';
 import { handleParseErrors, handleParseHeaders } from '../middlewares';
 import requiredParameter from '../requiredParameter';
-import defaultLogger from '../logger';
 import { ParseGraphQLSchema } from './ParseGraphQLSchema';
-import ParseGraphQLController, { ParseGraphQLConfig } from '../Controllers/ParseGraphQLController';
 
 class ParseGraphQLServer {
   parseGraphQLController: ParseGraphQLController;
@@ -33,6 +33,10 @@ class ParseGraphQLServer {
   }
 
   async _getGraphQLOptions(req) {
+    const {
+      errorFormatter
+    } = this;
+    
     try {
       return {
         schema: await this.parseGraphQLSchema.load(),
@@ -42,7 +46,26 @@ class ParseGraphQLServer {
           auth: req.auth,
         },
         formatError: error => {
-          // Allow to console.log here to debug
+          const {
+            originalError
+          } = error;
+
+          if (errorFormatter) {
+            let parseError;
+
+            if (originalError) {
+              parseError = originalError.parseError;
+              delete originalError.parseError;
+              delete error.extensions.exception.parseError;
+            }
+
+            return errorFormatter({
+              request: req,
+              error,
+              parseError
+            });
+          }
+
           return error;
         },
       };
@@ -132,6 +155,14 @@ class ParseGraphQLServer {
 
   setGraphQLConfig(graphQLConfig: ParseGraphQLConfig): Promise {
     return this.parseGraphQLController.updateGraphQLConfig(graphQLConfig);
+  }
+
+  setErrorFormatter(formatter) {
+    if (typeof formatter !== 'function') {
+      throw new Error('The argument "formatter" must be a function');
+    }
+  
+    this.errorFormatter = formatter;
   }
 }
 
