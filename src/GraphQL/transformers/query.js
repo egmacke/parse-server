@@ -148,15 +148,24 @@ const transformQueryConstraintInputToParse = (
       }
       switch (fieldName) {
         case 'have':
-          parentConstraints[parentFieldName].$inQuery = {
-            where: fieldValue,
-            className: targetClass,
-          };
-          transformQueryInputToParse(
-            parentConstraints[parentFieldName].$inQuery.where,
-            targetClass,
-            parseClasses
-          );
+          if (fieldValue.objectId && fieldValue.objectId.equalTo) {
+            parentConstraints[parentFieldName].$eq = fieldValue.objectId.equalTo;
+            transformQueryInputToParse(
+              parentConstraints[parentFieldName].$eq.where,
+              targetClass,
+              parseClasses
+            );
+          } else {
+            parentConstraints[parentFieldName].$inQuery = {
+              where: fieldValue,
+              className: targetClass,
+            };
+            transformQueryInputToParse(
+              parentConstraints[parentFieldName].$inQuery.where,
+              targetClass,
+              parseClasses
+            );
+          }
           break;
         case 'haveNot':
           parentConstraints[parentFieldName].$notInQuery = {
